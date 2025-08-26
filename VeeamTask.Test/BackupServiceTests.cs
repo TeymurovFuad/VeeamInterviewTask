@@ -12,8 +12,8 @@ namespace VeeamTask
     [TestFixture]
     public class BackupServiceTests
     {
-        BackupService fileManager;
-        ServiceConfig config;
+        BackupService fileManager { get; set; }
+        ServiceConfig config { get; set; }
         string currentProjectDirRoot => Directory.GetParent(Directory.GetCurrentDirectory())!.Parent!.Parent!.FullName;
         string sourceDir => Path.Combine(currentProjectDirRoot, "Source");
         string backupDir => Path.Combine(currentProjectDirRoot, "Replica");
@@ -25,7 +25,7 @@ namespace VeeamTask
             config = new ServiceConfig(
                     sourceDir: sourceDir,
                     backupDir: backupDir,
-                    syncInterval: TimeSpan.FromSeconds(10),
+                    syncInterval: TimeSpan.FromSeconds(2),
                     logFilePath: logFilePath);
 
             LoggerConfig.InitLogger(config.LogFilePath);
@@ -64,6 +64,61 @@ namespace VeeamTask
                 Assert.That(content1, Is.EqualTo("This is a test file 1."), "Content of test file 1 does not match.");
                 Assert.That(content2, Is.EqualTo("This is a test file 2."), "Content of test file 2 does not match.");
             });
+        }
+
+        [Test]
+        public async Task TestFileDeletion()
+        {
+            var testFile1 = Path.Combine(sourceDir, "test1.txt");
+            var testFile2 = Path.Combine(sourceDir, "test2.txt");
+
+            await File.WriteAllTextAsync(testFile1, "This is a test file 1.");
+            await File.WriteAllTextAsync(testFile2, "This is a test file 2.");
+
+            // Wait for the sync interval plus a buffer
+            await Task.Delay(config.SyncInterval * 2);
+
+            File.Delete(testFile1);
+
+            await Task.Delay(config.SyncInterval * 2);
+
+            var backupFile1 = Path.Combine(backupDir, "test1.txt");
+            var backupFile2 = Path.Combine(backupDir, "test2.txt");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(File.Exists(backupFile1), Is.False, "Test file 1 was not deleted from backup directory.");
+                Assert.That(File.Exists(backupFile2), Is.True, "Test file 2 should still exist in backup directory.");
+            });
+        }
+
+        [TearDown]
+        public void Cleanup()
+        {
+            fileManager.Stop();
+            LoggerConfig.CloseAndFlush();
+
+            SafeCleanup(sourceDir);
+            SafeCleanup(backupDir);
+            SafeCleanup(logFilePath);
+        }
+
+        private void SafeCleanup(string path)
+        {
+            if (!Directory.Exists(path)) return;
+
+            for (int i = 0; i < 5; i++)
+            {
+                try
+                {
+                    Directory.Delete(path, true);
+                    return;
+                }
+                catch (IOException)
+                {
+                    Thread.Sleep(200);
+                }
+            }
         }
     }
 }

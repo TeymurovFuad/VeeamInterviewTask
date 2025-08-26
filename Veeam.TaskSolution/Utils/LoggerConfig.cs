@@ -31,4 +31,9 @@ public class LoggerConfig
     {
         return log.ForContext(context);
     }
+
+    public static void CloseAndFlush()
+    {
+        Log.CloseAndFlush();
+    }
 }

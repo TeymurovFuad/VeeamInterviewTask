@@ -3,9 +3,17 @@ using Veeam.TaskSolution.Utils;
 
 namespace Veeam.TaskSolution;
 
-public class BackupService(ServiceConfig config)
+public class BackupService
 {
     static ILogger logger => LoggerConfig.GetLogger<BackupService>();
+    CancellationTokenSource cts { get; set; }
+    ServiceConfig config { get; set; }
+
+    public BackupService(ServiceConfig config)
+    {
+        cts = new();
+        this.config = config;
+    }
 
     public void StartSync()
     {
@@ -95,4 +103,9 @@ public class BackupService(ServiceConfig config)
         }
     }
 
+    public void Stop()
+    {
+        cts.Cancel();
+        logger.Information("Backup service stopped at {time}", DateTimeOffset.Now);
+    }
 }
