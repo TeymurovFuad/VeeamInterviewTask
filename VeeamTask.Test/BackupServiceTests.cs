@@ -105,6 +105,7 @@ namespace VeeamTask
 
         private void SafeCleanup(string path)
         {
+            //Because of file locks sometimes directory deletion may fail, so we try a few times
             if (!Directory.Exists(path)) return;
 
             for (int i = 0; i < 5; i++)
