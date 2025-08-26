@@ -9,23 +9,26 @@ public class BackupService(ServiceConfig config)
 
     public void StartSync()
     {
-        config.BackupDir.EnsureDirectoryExists();
-
-        while (true)
+        Task.Run(async () =>
         {
-            try
-            {
-                CleanBackupDirectory();
-                ReplicateSource();
-                logger.Information("Synchronization completed at {time}", DateTimeOffset.Now);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "An error occurred during synchronization at {time}", DateTimeOffset.Now);
-            }
+            config.BackupDir.EnsureDirectoryExists();
 
-            Task.Delay(config.SyncInterval).Wait();
-        }
+            while (true)
+            {
+                try
+                {
+                    CleanBackupDirectory();
+                    ReplicateSource();
+                    logger.Information("Synchronization completed at {time}", DateTimeOffset.Now);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "An error occurred during synchronization at {time}", DateTimeOffset.Now);
+                }
+
+                await Task.Delay(config.SyncInterval);
+            }
+        });
     }
 
     public void CleanBackupDirectory()
