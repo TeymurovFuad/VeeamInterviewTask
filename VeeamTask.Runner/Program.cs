@@ -4,10 +4,11 @@ using Veeam.TaskSolution.Utils;
 
 void StartService(string[] args)
 {
-    Console.Title = "Veeam Task Runner";
-
-    if (args.Length != 4 || !int.TryParse(args[2], out var syncIntervalInSeconds) || syncIntervalInSeconds <= 0)
+    if (args.Length != 4)
         throw new ArgumentException("Usage: VeeamTask.Runner <sourceDir> <backupDir> <syncIntervalInSeconds> <logFilePath>");
+
+    if (!int.TryParse(args[2], out var syncIntervalInSeconds) || syncIntervalInSeconds <= 0)
+        throw new ArgumentException("Sync interval must be a positive integer representing seconds.");
 
     var sourceDir = args[0];
 
